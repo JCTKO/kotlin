@@ -267,4 +267,8 @@ object SourceElementPositioningStrategies {
         LightTreePositioningStrategies.SPREAD_OPERATOR,
         PositioningStrategies.SPREAD_OPERATOR
     )
+
+    // TODO
+    val ACTUAL_DECLARATION_NAME = DEFAULT
+    val INCOMPATIBLE_DECLARATION = DEFAULT
 }

@@ -108,6 +108,20 @@ inline val FirTypeAliasSymbol.isFun: Boolean get() = resolvedStatus.isFun
 
 inline val FirClassLikeSymbol<*>.isLocal: Boolean get() = classId.isLocal
 
+inline val FirClassLikeSymbol<*>.isExpect: Boolean
+    get() = when (this) {
+        is FirRegularClassSymbol -> isExpect
+        is FirTypeAliasSymbol -> isExpect
+        else -> false
+    }
+
+inline val FirClassLikeSymbol<*>.isActual: Boolean
+    get() = when (this) {
+        is FirRegularClassSymbol -> isActual
+        is FirTypeAliasSymbol -> isActual
+        else -> false
+    }
+
 inline val FirClassSymbol<*>.isInterface: Boolean
     get() = classKind.isInterface
 

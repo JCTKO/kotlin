@@ -76,6 +76,8 @@ enum class PositioningStrategy(private val strategy: String? = null) {
     IMPORT_LAST_NAME,
     DATA_MODIFIER,
     SPREAD_OPERATOR,
+    INCOMPATIBLE_DECLARATION,
+    ACTUAL_DECLARATION_NAME,
 
     ;
 
