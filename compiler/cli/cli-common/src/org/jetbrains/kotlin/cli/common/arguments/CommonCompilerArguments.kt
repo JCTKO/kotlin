@@ -376,6 +376,13 @@ abstract class CommonCompilerArguments : CommonToolArguments() {
     )
     var extendedCompilerChecks: Boolean by FreezableVar(false)
 
+    @GradleOption(DefaultValues.BooleanFalseDefault::class)
+    @Argument(
+        value = "-Xbuiltins-from-sources",
+        description = "Compile builtIns from sources"
+    )
+    var builtInsFromSources: Boolean by FreezableVar(false)
+
     @Argument(
         value = "-Xunrestricted-builder-inference",
         description = "Eliminate builder inference restrictions like allowance of returning type variables of a builder inference call"
@@ -415,6 +422,7 @@ abstract class CommonCompilerArguments : CommonToolArguments() {
             )
             put(AnalysisFlags.extendedCompilerChecks, extendedCompilerChecks)
             put(AnalysisFlags.allowKotlinPackage, allowKotlinPackage)
+            put(AnalysisFlags.builtInsFromSources, builtInsFromSources)
         }
     }
 
