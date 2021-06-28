@@ -48,7 +48,7 @@ object KSerializerDescriptorResolver {
     fun isSerialInfoImpl(thisDescriptor: ClassDescriptor): Boolean {
         return thisDescriptor.name == IMPL_NAME
                 && thisDescriptor.containingDeclaration is LazyClassDescriptor
-                && thisDescriptor.containingDeclaration.annotations.hasAnnotation(serialInfoFqName)
+                && (thisDescriptor.containingDeclaration as ClassDescriptor).isSerialInfoAnnotation
     }
 
     fun addSerialInfoSuperType(thisDescriptor: ClassDescriptor, supertypes: MutableList<KotlinType>) {

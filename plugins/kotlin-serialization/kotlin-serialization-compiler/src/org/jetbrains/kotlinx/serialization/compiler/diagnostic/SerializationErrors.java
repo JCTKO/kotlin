@@ -40,6 +40,8 @@ public interface SerializationErrors {
     DiagnosticFactory3<KtAnnotationEntry, String, String, String> REQUIRED_KOTLIN_TOO_HIGH = DiagnosticFactory3.create(ERROR);
     DiagnosticFactory3<KtAnnotationEntry, String, String, String> PROVIDED_RUNTIME_TOO_LOW = DiagnosticFactory3.create(ERROR);
 
+    DiagnosticFactory1<PsiElement, KotlinType> INCONSISTENT_INHERITABLE_SERIALINFO = DiagnosticFactory1.create(ERROR);
+
     @SuppressWarnings("UnusedDeclaration")
     Object _initializer = new Object() {
         {

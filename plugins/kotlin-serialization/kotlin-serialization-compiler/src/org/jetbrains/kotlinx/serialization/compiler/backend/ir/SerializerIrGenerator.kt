@@ -6,6 +6,7 @@
 package org.jetbrains.kotlinx.serialization.compiler.backend.ir
 
 import org.jetbrains.kotlin.backend.common.deepCopyWithVariables
+import org.jetbrains.kotlin.backend.common.ir.Ir
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.backend.common.lower.irIfThen
 import org.jetbrains.kotlin.backend.common.lower.irThrow
@@ -95,8 +96,10 @@ open class SerializerIrGenerator(
 
                         addElementsContentToDescriptor(serialDescImplClass, localDesc, addFuncS)
                         // add class annotations
+                        val annotations = mutableListOf<IrConstructorCall>()
+                        collectSerialInfoAnnotations(serializableIrClass, annotations)
                         copySerialInfoAnnotationsToDescriptor(
-                            serializableIrClass.annotations,
+                            annotations,
                             localDesc,
                             serialDescImplClass.referenceFunctionSymbol(CallingConventions.addClassAnnotation)
                         )

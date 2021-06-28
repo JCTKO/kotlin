@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.descriptors.IrPropertyDelegateDescriptorImpl
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.*
+import org.jetbrains.kotlin.ir.interpreter.toIrConst
 import org.jetbrains.kotlin.ir.symbols.*
 import org.jetbrains.kotlin.ir.symbols.impl.*
 import org.jetbrains.kotlin.ir.types.*
@@ -26,6 +27,7 @@ import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.js.resolve.diagnostics.findPsi
 import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.platform.jvm.isJvm
 import org.jetbrains.kotlin.resolve.BindingContext
@@ -1097,13 +1099,59 @@ interface IrBuilderExtension {
         assert(ctor.isBound)
         val ctorDecl = ctor.owner
         if (needToCopyAnnotations) {
-            val classAnnotations = copyAnnotationsFrom(thisIrType.getClass()?.annotations.orEmpty())
+            val annotations = mutableListOf<IrConstructorCall>()
+            thisIrType.getClass()?.let { collectSerialInfoAnnotations(it, annotations) }
+            val classAnnotations = copyAnnotationsFrom(annotations)
             args = args + createArrayOfExpression(compilerContext.builtIns.annotationType.toIrType(), classAnnotations)
         }
 
         val typeParameters = ctorDecl.parentAsClass.typeParameters
         val substitutedReturnType = ctorDecl.returnType.substitute(typeParameters, typeArgs)
         return irInvoke(null, ctor, typeArguments = typeArgs, valueArguments = args, returnTypeHint = substitutedReturnType)
+    }
+
+    fun collectSerialInfoAnnotations(irClass: IrClass, result: MutableList<IrConstructorCall>) {
+        val annotationByFq: MutableMap<FqName, IrConstructorCall> = irClass.annotations.associateBy { it.symbol.owner.parentAsClass.descriptor.fqNameSafe }.toMutableMap()
+        if (!(irClass.isInterface || irClass.descriptor.hasSerializableAnnotation)) return
+        for (clazz in irClass.getAllSuperclasses()) {
+            val annotations = clazz.annotations
+                .map { it.symbol.owner.parentAsClass.descriptor to it }
+                .filter { it.first.isInheritableSerialInfoAnnotation }
+                .map { it.first.fqNameSafe to it.second }
+            annotations.forEach { (fqname, call) ->
+                if (fqname !in annotationByFq) {
+                    annotationByFq[fqname] = call
+                } else {
+                    // SerializationPluginDeclarationChecker already reported inconsistency
+                }
+            }
+        }
+        result.addAll(annotationByFq.values)
+    }
+
+    fun areEnumCallArgsEqual(a: IrConstructorCall, b: IrConstructorCall): Boolean {
+        if (a.valueArgumentsCount != b.valueArgumentsCount) return false
+        for (i in 0 until a.valueArgumentsCount) {
+            val argA = a.getValueArgument(i)
+            val argB = b.getValueArgument(i)
+            if (argA == null && argB == null) continue
+            if (argA == null || argB == null) return false
+            when(argA) {
+                is IrConst<*> -> {
+                    if (argB !is IrConst<*>) return false
+                    if (argA.value != argB.value) return false
+                }
+                is IrGetEnumValue -> {
+                    if (argB !is IrGetEnumValue) return false
+                    if (argA.symbol.owner.fqNameWhenAvailable != argB.symbol.owner.fqNameWhenAvailable) return false
+                }
+                is IrClassReference -> {
+                    if (argB !is IrClassReference) return false
+                    if (argA.symbol.descriptor.fqNameSafe != argB.symbol.descriptor.fqNameSafe) return false
+                }
+            }
+        }
+        return true
     }
 
     fun IrBuilderWithScope.callSerializerFromCompanion(
