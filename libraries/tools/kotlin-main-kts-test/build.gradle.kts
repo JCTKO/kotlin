@@ -6,7 +6,7 @@ plugins {
 }
 
 dependencies {
-    testApi(project(":kotlin-main-kts"))
+    testApi(project(":kotlin-main-kts", configuration = "runtimeJar"))
     testCompileOnly(project(":compiler:cli"))
     testCompileOnly(project(":kotlin-scripting-jvm-host-unshaded"))
     testApi(kotlinStdlib("jdk8"))
