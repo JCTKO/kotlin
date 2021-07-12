@@ -37,10 +37,7 @@ internal abstract class KotlinToolRunner(
 
     abstract val isolatedClassLoaderCacheKey: Any
     private fun getIsolatedClassLoader(): ClassLoader = isolatedClassLoadersMap.computeIfAbsent(isolatedClassLoaderCacheKey) {
-        val arrayOfURLs = classpath.map {
-            project.logger.info("classpath: ${it.absolutePath}")
-            File(it.absolutePath).toURI().toURL()
-        }.toTypedArray()
+        val arrayOfURLs = classpath.map { File(it.absolutePath).toURI().toURL() }.toTypedArray()
         URLClassLoader(arrayOfURLs, null).apply {
             setDefaultAssertionStatus(enableAssertions)
         }
@@ -119,6 +116,7 @@ internal abstract class KotlinToolRunner(
         project.logger.info(
             """|Run in-process tool "$displayName"
                |Entry point method = $mainClass.$daemonEntryPoint
+               |Classpath = ${classpath.joinToString(File.pathSeparator) { it.absolutePath }}
                |Arguments = ${args.toPrettyString()}
                |Transformed arguments = ${if (transformedArgs == args) "same as arguments" else transformedArgs.toPrettyString()}
             """.trimMargin()
