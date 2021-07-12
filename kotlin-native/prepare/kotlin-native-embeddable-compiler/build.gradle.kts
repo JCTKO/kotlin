@@ -62,7 +62,6 @@ val compiler = embeddableCompiler("kotlin-native-compiler-embeddable") {
      * this jar distributed through kotlin-native distribution, but not with maven.
      */
     archiveVersion.set("")
-    outputs.upToDateWhen { archiveFile.getOrNull()?.asFile?.exists() ?: false }
     mergeServiceFiles()
 }
 
@@ -80,7 +79,6 @@ projectTest {
      * It's expected that test should be executed on CI, but currently this project under `kotlin.native.enabled`
      */
     dependsOn(runtimeJar)
-    val testCompilerClasspathProvider = project.provider { runtimeJar.get().outputs.files.asPath }
     val runtimeJarPathProvider = project.provider { runtimeJar.get().outputs.files.asPath }
     doFirst {
         systemProperty("compilerClasspath", "${runtimeJarPathProvider.get()}${File.pathSeparator}${testCompilerClasspathProvider.get()}")
