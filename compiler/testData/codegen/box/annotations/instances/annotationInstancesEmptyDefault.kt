@@ -4,7 +4,7 @@
 // WITH_RUNTIME
 // !LANGUAGE: +InstantiationOfAnnotationClasses
 
-package a
+package test
 
 import kotlin.reflect.KClass
 
@@ -31,8 +31,8 @@ annotation class Partial(
 
 fun box(): String {
     val c = C()
-    assert(c.toString() == "@a.C(i=42, b=@a.B(a=@a.A()), kClass=interface a.B (Kotlin reflection is not available), e=B, aS=[a, b], aI=[1, 2])")
+    assert(c.toString() == "@test.C(i=42, b=@test.B(a=@test.A()), kClass=interface test.B (Kotlin reflection is not available), e=B, aS=[a, b], aI=[1, 2])")
     val p = Partial(e = E.B, s = "bar")
-    assert(p.toString() == "@a.Partial(i=42, s=bar, e=B)")
+    assert(p.toString() == "@test.Partial(i=42, s=bar, e=B)")
     return "OK"
 }

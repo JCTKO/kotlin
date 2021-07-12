@@ -44,7 +44,7 @@ fun box(): String {
         A::class, emptyArray(), intArrayOf(1, 2), arrayOf(E.E0), arrayOf(Empty())
     )
     val s = anno.toString()
-    val target = "@a.Anno(s=OK, i=42, f=2.718281828, u=43, e=E0, a=@a.A(b=1, s=1, i=1, f=1.0, d=1.0, l=1, c=c, bool=true), " +
-            "k=interface a.A (Kotlin reflection is not available), arr=[], intArr=[1, 2], arrOfE=[E0], arrOfA=[@a.Empty()])"
+    val target = "@test.Anno(s=OK, i=42, f=2.718281828, u=43, e=E0, a=@test.A(b=1, s=1, i=1, f=1.0, d=1.0, l=1, c=c, bool=true), " +
+            "k=interface test.A (Kotlin reflection is not available), arr=[], intArr=[1, 2], arrOfE=[E0], arrOfA=[@test.Empty()])"
     return if (s == target) "OK" else "FAILED, got string $s"
 }
