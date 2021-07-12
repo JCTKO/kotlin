@@ -27,7 +27,6 @@ import org.jetbrains.annotations.TestOnly;
 import org.jetbrains.kotlin.backend.common.output.OutputFile;
 import org.jetbrains.kotlin.backend.common.output.OutputFileCollection;
 import org.jetbrains.kotlin.codegen.state.GenerationState;
-import org.jetbrains.kotlin.config.AnalysisFlags;
 import org.jetbrains.kotlin.config.JvmAnalysisFlags;
 import org.jetbrains.kotlin.descriptors.ClassDescriptor;
 import org.jetbrains.kotlin.descriptors.DescriptorUtilKt;
@@ -52,7 +51,6 @@ import org.jetbrains.org.objectweb.asm.Type;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.jetbrains.kotlin.codegen.JvmCodegenUtil.getMappingFileName;
 
@@ -133,11 +131,6 @@ public class ClassFileFactory implements OutputFileCollection {
 
         StringTableImpl stringTable = new StringTableImpl();
         ClassFileUtilsKt.addDataFromCompiledModule(builder, packagePartRegistry, stringTable, state);
-
-        List<String> experimental = state.getLanguageVersionSettings().getFlag(AnalysisFlags.getExperimental());
-        if (!experimental.isEmpty()) {
-            writeExperimentalMarkers(state.getModule(), builder, experimental, stringTable);
-        }
 
         Pair<ProtoBuf.StringTable, ProtoBuf.QualifiedNameTable> tables = stringTable.buildProto();
         builder.setStringTable(tables.getFirst());
