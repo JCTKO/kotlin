@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.name.FqName
 
 public abstract class KtFunctionLikeSymbol : KtCallableSymbol(), KtSymbolWithKind {
     public abstract val valueParameters: List<KtValueParameterSymbol>
+    public abstract val hasStableParameterNames: Boolean
 
     abstract override fun createPointer(): KtSymbolPointer<KtFunctionLikeSymbol>
 }
