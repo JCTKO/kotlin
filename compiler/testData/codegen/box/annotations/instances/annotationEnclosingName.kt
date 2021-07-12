@@ -6,7 +6,7 @@
 
 // FILE: a.kt
 
-package a
+package test
 
 annotation class A1
 
@@ -18,7 +18,7 @@ fun interface I {
 
 // FILE: test.kt
 
-import a.*
+package test
 
 class E {
     fun insideClass(): A1 = A1()
@@ -44,10 +44,10 @@ fun test(instance: Any, parent: String, fqa: String) {
 }
 
 fun box(): String {
-    test(E().insideClass(), "E", "a_A1")
-    test(E().insideLammbda(), "E", "a_A1")
-    test(E().insideSAM().run(), "E", "a_A1")
-    test(G().insideClassAgain(), "E", "a_A1")
-    test(outsideClass(), "TestKt", "a_A2")
+    test(E().insideClass(), "test.E", "test_A1")
+    test(E().insideLammbda(), "test.E", "test_A1")
+    test(E().insideSAM().run(), "test.E", "test_A1")
+    test(G().insideClassAgain(), "test.E", "test_A1")
+    test(outsideClass(), "test.TestKt", "test_A2")
     return "OK"
 }

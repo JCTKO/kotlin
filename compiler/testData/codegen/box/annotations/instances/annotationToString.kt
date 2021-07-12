@@ -4,7 +4,7 @@
 // WITH_RUNTIME
 // !LANGUAGE: +InstantiationOfAnnotationClasses
 
-package a
+package test
 
 import kotlin.reflect.KClass
 
