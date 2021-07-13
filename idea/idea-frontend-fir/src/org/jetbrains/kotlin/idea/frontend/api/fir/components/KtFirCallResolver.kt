@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.fir.FirSourceElement
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.realPsi
 import org.jetbrains.kotlin.fir.references.FirErrorNamedReference
+import org.jetbrains.kotlin.fir.references.FirReference
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.impl.FirSimpleNamedReference
 import org.jetbrains.kotlin.fir.resolve.calls.FirErrorReferenceWithCandidate
@@ -30,12 +31,10 @@ import org.jetbrains.kotlin.idea.frontend.api.tokens.ValidityToken
 import org.jetbrains.kotlin.idea.frontend.api.withValidityAssertion
 import org.jetbrains.kotlin.idea.references.FirReferenceResolveHelper
 import org.jetbrains.kotlin.name.CallableId
-import org.jetbrains.kotlin.psi.KtBinaryExpression
-import org.jetbrains.kotlin.psi.KtCallExpression
-import org.jetbrains.kotlin.psi.KtUnaryExpression
-import org.jetbrains.kotlin.psi.KtValueArgument
+import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getNonStrictParentOfType
 import org.jetbrains.kotlin.util.OperatorNameConventions
+import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 
 internal class KtFirCallResolver(
     override val analysisSession: KtFirAnalysisSession,
@@ -65,13 +64,14 @@ internal class KtFirCallResolver(
         }
     }
 
-    override fun resolveCall(call: KtCallExpression): KtCall? = withValidityAssertion {
-        val firCall = when (val fir = call.getOrBuildFir(firResolveState)) {
-            is FirFunctionCall -> fir
-            is FirSafeCallExpression -> fir.regularQualifiedAccess as? FirFunctionCall
+    override fun resolveCall(call: KtCallElement): KtCall? = withValidityAssertion {
+        return when (val fir = call.getOrBuildFir(firResolveState)) {
+            is FirFunctionCall -> resolveCall(fir)
+            is FirAnnotationCall -> fir.asAnnotationCall()
+            is FirDelegatedConstructorCall -> fir.asDelegatedConstructorCall()
+            is FirSafeCallExpression -> fir.regularQualifiedAccess.safeAs<FirFunctionCall>()?.let { resolveCall(it) }
             else -> null
-        } ?: return null
-        return resolveCall(firCall)
+        }
     }
 
     private fun resolveCall(firCall: FirFunctionCall): KtCall? {
@@ -115,23 +115,40 @@ internal class KtFirCallResolver(
     }
 
     private fun FirFunctionCall.asSimpleFunctionCall(): KtFunctionCall? {
-        val target = when (val calleeReference = calleeReference) {
-            is FirResolvedNamedReference -> calleeReference.getKtFunctionOrConstructorSymbol()?.let { KtSuccessCallTarget(it) }
-            is FirErrorNamedReference -> calleeReference.createErrorCallTarget(source)
-            is FirErrorReferenceWithCandidate -> calleeReference.createErrorCallTarget(source)
+        val target = calleeReference.createCallTarget() ?: return null
+        return KtFunctionCall(createArgumentMapping(), target)
+    }
+
+    private fun FirAnnotationCall.asAnnotationCall(): KtAnnotationCall? {
+        val target = calleeReference.createCallTarget() ?: return null
+        return KtAnnotationCall(createArgumentMapping(), target)
+    }
+
+    private fun FirDelegatedConstructorCall.asDelegatedConstructorCall(): KtDelegatedConstructorCall? {
+        val target = calleeReference.createCallTarget() ?: return null
+        return KtDelegatedConstructorCall(createArgumentMapping(), target, isThis)
+    }
+
+    private fun FirReference.createCallTarget(): KtCallTarget? {
+        return when (this) {
+            is FirResolvedNamedReference -> getKtFunctionOrConstructorSymbol()?.let { KtSuccessCallTarget(it) }
+            is FirErrorNamedReference -> createErrorCallTarget(source)
+            is FirErrorReferenceWithCandidate -> createErrorCallTarget(source)
             is FirSimpleNamedReference ->
                 null
-              /*  error(
-                    """
-                      Looks like ${this::class.simpleName} && it calle reference ${calleeReference::class.simpleName} were not resolved to BODY_RESOLVE phase,
-                      consider resolving it containing declaration before starting resolve calls
-                      ${this.render()}
-                      ${(this.psi as? KtElement)?.getElementTextInContext()}
-                      """.trimIndent()
-                )*/
-            else -> error("Unexpected call reference ${calleeReference::class.simpleName}")
-        } ?: return null
+            /*  error(
+                  """
+                    Looks like ${this::class.simpleName} && it calle reference ${calleeReference::class.simpleName} were not resolved to BODY_RESOLVE phase,
+                    consider resolving it containing declaration before starting resolve calls
+                    ${this.render()}
+                    ${(this.psi as? KtElement)?.getElementTextInContext()}
+                    """.trimIndent()
+              )*/
+            else -> error("Unexpected call reference ${this::class.simpleName}")
+        }
+    }
 
+    private fun FirCall.createArgumentMapping(): LinkedHashMap<KtValueArgument, KtValueParameterSymbol> {
         val ktArgumentMapping = LinkedHashMap<KtValueArgument, KtValueParameterSymbol>()
         argumentMapping?.let {
             for ((firExpression, firValueParameter) in it.entries) {
@@ -149,8 +166,7 @@ internal class KtFirCallResolver(
                 }
             }
         }
-
-        return KtFunctionCall(ktArgumentMapping, target)
+        return ktArgumentMapping
     }
 
     private fun FirErrorNamedReference.createErrorCallTarget(qualifiedAccessSource: FirSourceElement?): KtErrorCallTarget =
