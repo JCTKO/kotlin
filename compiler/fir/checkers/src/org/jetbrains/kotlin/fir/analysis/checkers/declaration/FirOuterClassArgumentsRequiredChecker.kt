@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.fir.analysis.checkers.declaration
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.context.findClosest
 import org.jetbrains.kotlin.fir.analysis.checkers.extractArgumentTypeRefAndSource
+import org.jetbrains.kotlin.fir.analysis.checkers.getContainingClassSymbol
 import org.jetbrains.kotlin.fir.analysis.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.analysis.diagnostics.reportOn
@@ -45,13 +46,13 @@ private fun checkOuterClassArgumentsRequired(
 
         if (symbol is FirRegularClassSymbol) {
             val typeArguments = delegatedTypeRef.qualifier.toTypeProjections()
-            val typeParameters = symbol.fir.typeParameters
+            val typeParameters = symbol.typeParameterSymbols
 
             for (index in typeArguments.size until typeParameters.size) {
                 val typeParameter = typeParameters[index]
                 if (!isValidTypeParameterFromOuterClass(typeParameter, declaration, context.session)) {
-                    val outerClass = typeParameter.symbol.fir.containingDeclarationSymbol?.fir as FirRegularClass
-                    reporter.reportOn(typeRef.source, FirErrors.OUTER_CLASS_ARGUMENTS_REQUIRED, outerClass.symbol, context)
+                    val outerClass = typeParameter.containingDeclarationSymbol as FirRegularClassSymbol
+                    reporter.reportOn(typeRef.source, FirErrors.OUTER_CLASS_ARGUMENTS_REQUIRED, outerClass, context)
                     break
                 }
             }

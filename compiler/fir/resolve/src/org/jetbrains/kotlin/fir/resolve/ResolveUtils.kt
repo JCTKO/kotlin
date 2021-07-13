@@ -452,16 +452,16 @@ fun FirFunction.getAsForbiddenNamedArgumentsTarget(session: FirSession): Forbidd
 fun FirFunction.getHasStableParameterNames(session: FirSession): Boolean = getAsForbiddenNamedArgumentsTarget(session) == null
 
 fun isValidTypeParameterFromOuterClass(
-    typeParameter: FirTypeParameterRef,
+    typeParameterSymbol: FirTypeParameterSymbol,
     classDeclaration: FirRegularClass?,
     session: FirSession
 ): Boolean {
-    if (typeParameter !is FirOuterClassTypeParameterRef || classDeclaration == null) {
+    if (classDeclaration == null) {
         return true  // Extra check is required because of classDeclaration will be resolved later
     }
 
     fun containsTypeParameter(currentClassDeclaration: FirRegularClass): Boolean {
-        if (currentClassDeclaration.typeParameters.any { it.symbol == typeParameter.symbol }) {
+        if (currentClassDeclaration.typeParameters.any { it.symbol == typeParameterSymbol }) {
             return true
         }
 

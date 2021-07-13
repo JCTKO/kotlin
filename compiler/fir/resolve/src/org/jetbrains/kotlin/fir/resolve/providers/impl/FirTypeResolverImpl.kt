@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.fir.resolve.providers.impl
 import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.declarations.*
+import org.jetbrains.kotlin.fir.declarations.impl.FirOuterClassTypeParameterRef
 import org.jetbrains.kotlin.fir.declarations.utils.classId
 import org.jetbrains.kotlin.fir.diagnostics.ConeUnexpectedTypeArgumentsError
 import org.jetbrains.kotlin.fir.resolve.*
@@ -148,7 +149,9 @@ class FirTypeResolverImpl(private val session: FirSession) : FirTypeResolver() {
                         continue
                     }
 
-                    if (isValidTypeParameterFromOuterClass(typeParameter, topDeclaration, session)) {
+                    if (typeParameter !is FirOuterClassTypeParameterRef ||
+                        isValidTypeParameterFromOuterClass(typeParameter.symbol, topDeclaration, session)
+                    ) {
                         val type = ConeTypeParameterTypeImpl(ConeTypeParameterLookupTag(typeParameter.symbol), isNullable = false)
                         val substituted = actualSubstitutor.substituteOrNull(type)
                         if (substituted == null) {

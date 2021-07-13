@@ -15,6 +15,7 @@ import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.*
 import org.jetbrains.kotlin.fir.render
 import org.jetbrains.kotlin.fir.resolve.dfa.cfg.isLocalClassOrAnonymousObject
+import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.firUnsafe
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.*
@@ -82,15 +83,15 @@ object FirDiagnosticRenderers {
 
     val RENDER_CLASS_OR_OBJECT_NAME = Renderer { firClassLike: FirClassLikeSymbol<*> ->
         val name = firClassLike.classId.relativeClassName.shortName().asString()
-        val prefix = when (val fir = firClassLike.fir) {
-            is FirTypeAlias -> "typealias"
-            is FirRegularClass -> {
+        val prefix = when (firClassLike) {
+            is FirTypeAliasSymbol -> "typealias"
+            is FirRegularClassSymbol -> {
                 when {
-                    fir.isCompanion -> "companion object"
-                    fir.isInterface -> "interface"
-                    fir.isEnumClass -> "enum class"
-                    fir.isFromEnumClass -> "enum entry"
-                    fir.isLocalClassOrAnonymousObject() -> "object"
+                    firClassLike.isCompanion -> "companion object"
+                    firClassLike.isInterface -> "interface"
+                    firClassLike.isEnumClass -> "enum class"
+                    firClassLike.isFromEnumClass -> "enum entry"
+                    firClassLike.isLocalClassOrAnonymousObject -> "object"
                     else -> "class"
                 }
             }
