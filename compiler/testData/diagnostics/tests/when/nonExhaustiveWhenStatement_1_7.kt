@@ -1,3 +1,4 @@
+// FIR_IDENTICAL
 // !LANGUAGE: +ProhibitNonExhaustiveWhenOnLogicalTypes
 
 enum class SomeEnum {
