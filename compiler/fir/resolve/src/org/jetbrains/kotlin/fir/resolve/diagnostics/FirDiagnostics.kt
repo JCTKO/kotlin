@@ -13,10 +13,7 @@ import org.jetbrains.kotlin.fir.diagnostics.ConeDiagnostic
 import org.jetbrains.kotlin.fir.render
 import org.jetbrains.kotlin.fir.resolve.calls.Candidate
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.name.ClassId
@@ -102,21 +99,11 @@ class ConeIllegalAnnotationError(val name: Name) : ConeDiagnostic() {
 abstract class ConeUnmatchedTypeArgumentsError(val desiredCount: Int, val type: FirClassLikeSymbol<*>) : ConeDiagnostic()
 
 class ConeWrongNumberOfTypeArgumentsError(
-    desiredCount: Int,
-    type: FirClassLikeSymbol<*>,
-    val klass: FirRegularClass,
+    val desiredCount: Int,
+    val symbol: FirRegularClassSymbol,
     val source: FirSourceElement?
-) : ConeUnmatchedTypeArgumentsError(desiredCount, type) {
+) : ConeDiagnostic() {
     override val reason: String get() = "Wrong number of type arguments"
-}
-
-class ConeTypeArgumentsForOuterClassWhenNestedReferenced(
-    desiredCount: Int,
-    type: FirClassLikeSymbol<*>,
-    val klass: FirRegularClass,
-    val source: FirSourceElement?
-) : ConeUnmatchedTypeArgumentsError(desiredCount, type) {
-    override val reason: String get() = "Type arguments for outer class when nested referenced"
 }
 
 class ConeNoTypeArgumentsOnRhsError(
@@ -127,7 +114,7 @@ class ConeNoTypeArgumentsOnRhsError(
 }
 
 class ConeOuterClassArgumentsRequired(
-    val type: FirRegularClass,
+    val symbol: FirRegularClassSymbol,
 ) : ConeDiagnostic() {
     override val reason: String = "Type arguments should be specified for an outer class"
 }

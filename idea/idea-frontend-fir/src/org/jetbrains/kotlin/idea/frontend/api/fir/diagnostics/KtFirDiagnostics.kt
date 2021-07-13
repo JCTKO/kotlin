@@ -947,7 +947,7 @@ sealed class KtFirDiagnostic<PSI : PsiElement> : KtDiagnosticWithPsi<PSI> {
     abstract class WrongNumberOfTypeArguments : KtFirDiagnostic<PsiElement>() {
         override val diagnosticClass get() = WrongNumberOfTypeArguments::class
         abstract val expectedCount: Int
-        abstract val classifier: KtNamedClassOrObjectSymbol
+        abstract val classifier: KtClassLikeSymbol
     }
 
     abstract class NoTypeArgumentsOnRhs : KtFirDiagnostic<PsiElement>() {
@@ -958,7 +958,7 @@ sealed class KtFirDiagnostic<PSI : PsiElement> : KtDiagnosticWithPsi<PSI> {
 
     abstract class OuterClassArgumentsRequired : KtFirDiagnostic<PsiElement>() {
         override val diagnosticClass get() = OuterClassArgumentsRequired::class
-        abstract val outer: KtNamedClassOrObjectSymbol
+        abstract val outer: KtClassLikeSymbol
     }
 
     abstract class TypeParametersInObject : KtFirDiagnostic<PsiElement>() {

@@ -12,7 +12,6 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.analysis.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
-import org.jetbrains.kotlin.fir.declarations.FirTypeParameterRef
 import org.jetbrains.kotlin.fir.resolve.isValidTypeParameterFromOuterClass
 import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.resolve.toTypeProjections
@@ -51,15 +50,9 @@ private fun checkOuterClassArgumentsRequired(
             for (index in typeArguments.size until typeParameters.size) {
                 val typeParameter = typeParameters[index]
                 if (!isValidTypeParameterFromOuterClass(typeParameter, declaration, context.session)) {
-                    var outerClass: FirRegularClass? = null
-                    context.findClosest<FirRegularClass> {
-                        outerClass = getClassThatContainsTypeParameter(it, typeParameter)
-                        return@findClosest outerClass != null
-                    }
-                    if (outerClass != null) {
-                        reporter.reportOn(typeRef.source, FirErrors.OUTER_CLASS_ARGUMENTS_REQUIRED, outerClass!!, context)
-                        break
-                    }
+                    val outerClass = typeParameter.symbol.fir.containingDeclarationSymbol?.fir as FirRegularClass
+                    reporter.reportOn(typeRef.source, FirErrors.OUTER_CLASS_ARGUMENTS_REQUIRED, outerClass.symbol, context)
+                    break
                 }
             }
         }
@@ -69,21 +62,4 @@ private fun checkOuterClassArgumentsRequired(
         val firTypeRefSource = extractArgumentTypeRefAndSource(typeRef, index) ?: continue
         firTypeRefSource.typeRef?.let { checkOuterClassArgumentsRequired(it, declaration, context, reporter) }
     }
-}
-
-fun getClassThatContainsTypeParameter(klass: FirRegularClass, typeParameter: FirTypeParameterRef): FirRegularClass? {
-    if (klass.typeParameters.any { param -> param.symbol == typeParameter.symbol }) {
-        return klass
-    }
-
-    for (declaration in klass.declarations) {
-        if (declaration is FirRegularClass) {
-            val result = getClassThatContainsTypeParameter(declaration, typeParameter)
-            if (result != null) {
-                return result
-            }
-        }
-    }
-
-    return null
 }

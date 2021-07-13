@@ -80,17 +80,17 @@ object FirDiagnosticRenderers {
         "$classOrObject $name"
     }
 
-    val RENDER_CLASS_OR_OBJECT_NAME = Renderer { firClassLike: FirClassLikeDeclaration ->
+    val RENDER_CLASS_OR_OBJECT_NAME = Renderer { firClassLike: FirClassLikeSymbol<*> ->
         val name = firClassLike.classId.relativeClassName.shortName().asString()
-        val prefix = when (firClassLike) {
+        val prefix = when (val fir = firClassLike.fir) {
             is FirTypeAlias -> "typealias"
             is FirRegularClass -> {
                 when {
-                    firClassLike.isCompanion -> "companion object"
-                    firClassLike.isInterface -> "interface"
-                    firClassLike.isEnumClass -> "enum class"
-                    firClassLike.isFromEnumClass -> "enum entry"
-                    firClassLike.isLocalClassOrAnonymousObject() -> "object"
+                    fir.isCompanion -> "companion object"
+                    fir.isInterface -> "interface"
+                    fir.isEnumClass -> "enum class"
+                    fir.isFromEnumClass -> "enum entry"
+                    fir.isLocalClassOrAnonymousObject() -> "object"
                     else -> "class"
                 }
             }

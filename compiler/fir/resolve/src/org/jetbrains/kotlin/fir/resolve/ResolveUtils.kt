@@ -32,6 +32,7 @@ import org.jetbrains.kotlin.fir.resolve.inference.inferenceComponents
 import org.jetbrains.kotlin.fir.resolve.inference.isBuiltinFunctionalType
 import org.jetbrains.kotlin.fir.resolve.providers.getSymbolByTypeRef
 import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.resultType
+import org.jetbrains.kotlin.fir.resolve.transformers.firClassLike
 import org.jetbrains.kotlin.fir.symbols.ensureResolved
 import org.jetbrains.kotlin.fir.scopes.impl.delegatedWrapperData
 import org.jetbrains.kotlin.fir.scopes.impl.importedFromObjectData
@@ -450,14 +451,17 @@ fun FirFunction.getAsForbiddenNamedArgumentsTarget(session: FirSession): Forbidd
 //  org.jetbrains.kotlin.fir.serialization.FirElementSerializer.constructorProto
 fun FirFunction.getHasStableParameterNames(session: FirSession): Boolean = getAsForbiddenNamedArgumentsTarget(session) == null
 
-fun isValidTypeParameterFromOuterClass(typeParameter: FirTypeParameterRef, classDeclaration: FirRegularClass?, session: FirSession): Boolean {
+fun isValidTypeParameterFromOuterClass(
+    typeParameter: FirTypeParameterRef,
+    classDeclaration: FirRegularClass?,
+    session: FirSession
+): Boolean {
     if (typeParameter !is FirOuterClassTypeParameterRef || classDeclaration == null) {
-        return true
+        return true  // Extra check is required because of classDeclaration will be resolved later
     }
 
     fun containsTypeParameter(currentClassDeclaration: FirRegularClass): Boolean {
-        val result = currentClassDeclaration.typeParameters.any { it.symbol == typeParameter.symbol }
-        if (result) {
+        if (currentClassDeclaration.typeParameters.any { it.symbol == typeParameter.symbol }) {
             return true
         }
 

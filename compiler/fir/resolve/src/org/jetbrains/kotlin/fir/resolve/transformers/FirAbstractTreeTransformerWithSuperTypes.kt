@@ -47,10 +47,9 @@ abstract class FirAbstractTreeTransformerWithSuperTypes(
     }
 
     protected inline fun <T> withClassDeclarationCleanup(declaration: FirRegularClass, crossinline l: () -> T): T {
-        classDeclarationsStack.add(declaration)
-        val result = l()
-        classDeclarationsStack.removeLast()
-        return result
+        withClassDeclarationCleanup(classDeclarationsStack, declaration) {
+            return l()
+        }
     }
 
     protected fun resolveNestedClassesSupertypes(

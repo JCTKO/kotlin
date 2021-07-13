@@ -1520,7 +1520,7 @@ internal class TypeArgumentsNotAllowedImpl(
 
 internal class WrongNumberOfTypeArgumentsImpl(
     override val expectedCount: Int,
-    override val classifier: KtNamedClassOrObjectSymbol,
+    override val classifier: KtClassLikeSymbol,
     firDiagnostic: FirPsiDiagnostic,
     override val token: ValidityToken,
 ) : KtFirDiagnostic.WrongNumberOfTypeArguments(), KtAbstractFirDiagnostic<PsiElement> {
@@ -1537,7 +1537,7 @@ internal class NoTypeArgumentsOnRhsImpl(
 }
 
 internal class OuterClassArgumentsRequiredImpl(
-    override val outer: KtNamedClassOrObjectSymbol,
+    override val outer: KtClassLikeSymbol,
     firDiagnostic: FirPsiDiagnostic,
     override val token: ValidityToken,
 ) : KtFirDiagnostic.OuterClassArgumentsRequired(), KtAbstractFirDiagnostic<PsiElement> {

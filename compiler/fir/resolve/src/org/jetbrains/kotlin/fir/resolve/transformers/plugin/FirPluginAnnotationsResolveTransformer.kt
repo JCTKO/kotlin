@@ -117,17 +117,16 @@ private class FirAnnotationResolveTransformer(
         regularClass: FirRegularClass,
         data: Multimap<AnnotationFqn, FirRegularClass>
     ): FirStatement {
-        classDeclarationsStack.add(regularClass)
-        val result = super.transformRegularClass(regularClass, data).also {
-            if (regularClass.classKind == ClassKind.ANNOTATION_CLASS && metaAnnotations.isNotEmpty()) {
-                val annotations = regularClass.annotations.mapNotNull { it.fqName(session) }
-                for (annotation in annotations.filter { it in metaAnnotations }) {
-                    data.put(annotation, regularClass)
+        withClassDeclarationCleanup(classDeclarationsStack, classDeclarationsStack.last()) {
+            return@transformRegularClass super.transformRegularClass(regularClass, data).also {
+                if (regularClass.classKind == ClassKind.ANNOTATION_CLASS && metaAnnotations.isNotEmpty()) {
+                    val annotations = regularClass.annotations.mapNotNull { it.fqName(session) }
+                    for (annotation in annotations.filter { it in metaAnnotations }) {
+                        data.put(annotation, regularClass)
+                    }
                 }
             }
         }
-        classDeclarationsStack.removeLast()
-        return result
     }
 
     override fun transformAnnotatedDeclaration(

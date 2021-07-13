@@ -323,10 +323,10 @@ open class FirSupertypeResolverVisitor(
     }
 
     override fun visitRegularClass(regularClass: FirRegularClass, data: Any?) {
-        classDeclarationsStack.add(regularClass)
-        resolveSpecificClassLikeSupertypes(regularClass, regularClass.superTypeRefs)
-        visitDeclarationContent(regularClass, null)
-        classDeclarationsStack.removeLast()
+        withClassDeclarationCleanup(classDeclarationsStack, regularClass) {
+            resolveSpecificClassLikeSupertypes(regularClass, regularClass.superTypeRefs)
+            visitDeclarationContent(regularClass, null)
+        }
     }
 
     override fun visitAnonymousObject(anonymousObject: FirAnonymousObject, data: Any?) {
