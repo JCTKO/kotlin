@@ -95,7 +95,7 @@ class ControlFlowGraphBuilder {
 
     private val exitSafeCallNodes: Stack<ExitSafeCallNode> = stackOf()
     private val exitElvisExpressionNodes: Stack<ElvisExitNode> = stackOf()
-    private val elvisRhsEnterNodes: Stack<ElvisRhsEnterNode> = stackOf()
+    private val elvisLhsExitNodes: Stack<ElvisLhsExitNode> = stackOf()
 
     /*
      * ignoredFunctionCalls is needed for resolve of += operator:
@@ -1038,7 +1038,12 @@ class ControlFlowGraphBuilder {
         checkNotNullCall: FirCheckNotNullCall,
         callCompleted: Boolean
     ): Pair<CheckNotNullCallNode, UnionFunctionCallArgumentsNode?> {
-        val node = createCheckNotNullCallNode(checkNotNullCall).also { addNewSimpleNode(it) }
+        val node = createCheckNotNullCallNode(checkNotNullCall)
+        if (checkNotNullCall.resultType.isNothing) {
+            addNodeThatReturnsNothing(node)
+        } else {
+            addNewSimpleNode(node)
+        }
         val unionNode = processUnionOfArguments(node, callCompleted).second
         return node to unionNode
     }
@@ -1166,8 +1171,9 @@ class ControlFlowGraphBuilder {
         val exitNode = createExitSafeCallNode(safeCall)
         exitSafeCallNodes.push(exitNode)
         addEdge(lastNode, enterNode)
-        if (elvisRhsEnterNodes.topOrNull()?.fir?.lhs === safeCall) {
-            addEdge(lastNode, elvisRhsEnterNodes.top())
+        if (elvisLhsExitNodes.topOrNull()?.fir?.lhs === safeCall) {
+            addEdge(lastNode, exitNode, preferredKind = EdgeKind.DfgForward)
+            addEdge(lastNode, elvisLhsExitNodes.top(), preferredKind = EdgeKind.CfgForward)
         } else {
             addEdge(lastNode, exitNode)
         }
@@ -1190,7 +1196,7 @@ class ControlFlowGraphBuilder {
     // ----------------------------------- Elvis -----------------------------------
 
     fun enterElvis(elvisExpression: FirElvisExpression) {
-        elvisRhsEnterNodes.push(createElvisRhsEnterNode(elvisExpression))
+        elvisLhsExitNodes.push(createElvisLhsExitNode(elvisExpression))
     }
 
     fun exitElvisLhs(elvisExpression: FirElvisExpression): Triple<ElvisLhsExitNode, ElvisLhsIsNotNullNode, ElvisRhsEnterNode> {
@@ -1198,7 +1204,7 @@ class ControlFlowGraphBuilder {
             exitElvisExpressionNodes.push(it)
         }
 
-        val lhsExitNode = createElvisLhsExitNode(elvisExpression).also {
+        val lhsExitNode = elvisLhsExitNodes.pop().also {
             popAndAddEdge(it)
         }
 
@@ -1207,7 +1213,7 @@ class ControlFlowGraphBuilder {
             addEdge(it, exitNode)
         }
 
-        val rhsEnterNode = elvisRhsEnterNodes.pop().also {
+        val rhsEnterNode = createElvisRhsEnterNode(elvisExpression).also {
             addEdge(lhsExitNode, it)
         }
         lastNodes.push(rhsEnterNode)
