@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.fir.expressions.FirAnnotationCall
 import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.builder.buildExpressionStub
 import org.jetbrains.kotlin.fir.resolve.defaultType
+import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
@@ -62,7 +63,8 @@ class FirDeserializationContext(
         containerSource: DeserializedContainerSource? = this.containerSource,
         outerClassSymbol: FirRegularClassSymbol? = this.outerClassSymbol,
         annotationDeserializer: AbstractAnnotationDeserializer = this.annotationDeserializer,
-        capturesTypeParameters: Boolean = true
+        capturesTypeParameters: Boolean = true,
+        containingDeclarationSymbol: FirBasedSymbol<*>? = this.outerClassSymbol
     ): FirDeserializationContext = FirDeserializationContext(
         nameResolver,
         typeTable,
@@ -77,7 +79,7 @@ class FirDeserializationContext(
             annotationDeserializer,
             typeParameterProtos,
             typeDeserializer,
-            outerClassSymbol
+            containingDeclarationSymbol
         ),
         annotationDeserializer,
         constDeserializer,
@@ -109,7 +111,8 @@ class FirDeserializationContext(
             relativeClassName = null,
             typeParameterProtos = emptyList(),
             containerSource,
-            outerClassSymbol = null
+            outerClassSymbol = null,
+            containingDeclarationSymbol = null
         )
 
         fun createForClass(
@@ -132,6 +135,7 @@ class FirDeserializationContext(
             classId.relativeClassName,
             classProto.typeParameterList,
             containerSource,
+            outerClassSymbol,
             outerClassSymbol
         )
 
@@ -147,6 +151,7 @@ class FirDeserializationContext(
             typeParameterProtos: List<ProtoBuf.TypeParameter>,
             containerSource: DeserializedContainerSource?,
             outerClassSymbol: FirRegularClassSymbol?,
+            containingDeclarationSymbol: FirBasedSymbol<*>?
         ): FirDeserializationContext {
             return FirDeserializationContext(
                 nameResolver, typeTable,
@@ -161,7 +166,7 @@ class FirDeserializationContext(
                     annotationDeserializer,
                     typeParameterProtos,
                     null,
-                    outerClassSymbol
+                    containingDeclarationSymbol
                 ),
                 annotationDeserializer,
                 constDeserializer,
@@ -185,8 +190,9 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
     fun loadTypeAlias(proto: ProtoBuf.TypeAlias): FirTypeAlias {
         val flags = proto.flags
         val name = c.nameResolver.getName(proto.name)
-        val local = c.childContext(proto.typeParameterList)
         val classId = ClassId(c.packageFqName, name)
+        val symbol = FirTypeAliasSymbol(classId)
+        val local = c.childContext(proto.typeParameterList, containingDeclarationSymbol = symbol)
         return buildTypeAlias {
             moduleData = c.moduleData
             origin = FirDeclarationOrigin.Library
@@ -202,7 +208,7 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
             }
 
             annotations += c.annotationDeserializer.loadTypeAliasAnnotations(proto, local.nameResolver)
-            symbol = FirTypeAliasSymbol(classId)
+            this.symbol = symbol
             expandedTypeRef = proto.underlyingType(c.typeTable).toTypeRef(local)
             resolvePhase = FirResolvePhase.ANALYZED_DEPENDENCIES
             typeParameters += local.typeDeserializer.ownTypeParameters.map { it.fir }
@@ -221,7 +227,7 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
         val callableName = c.nameResolver.getName(proto.name)
         val callableId = CallableId(c.packageFqName, c.relativeClassName, callableName)
         val symbol = FirPropertySymbol(callableId)
-        val local = c.childContext(proto.typeParameterList)
+        val local = c.childContext(proto.typeParameterList, containingDeclarationSymbol = symbol)
 
         // Per documentation on Property.getter_flags in metadata.proto, if an accessor flags field is absent, its value should be computed
         // by taking hasAnnotations/visibility/modality from property flags, and using false for the rest
@@ -390,7 +396,7 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
         val callableName = c.nameResolver.getName(proto.name)
         val callableId = CallableId(c.packageFqName, c.relativeClassName, callableName)
         val symbol = FirNamedFunctionSymbol(callableId)
-        val local = c.childContext(proto.typeParameterList)
+        val local = c.childContext(proto.typeParameterList, containingDeclarationSymbol = symbol)
 
         val simpleFunction = buildSimpleFunction {
             moduleData = c.moduleData
@@ -452,7 +458,7 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
         val relativeClassName = c.relativeClassName!!
         val callableId = CallableId(c.packageFqName, relativeClassName, relativeClassName.shortName())
         val symbol = FirConstructorSymbol(callableId)
-        val local = c.childContext(emptyList())
+        val local = c.childContext(emptyList(), containingDeclarationSymbol = symbol)
         val isPrimary = !Flags.IS_SECONDARY.get(flags)
 
         val typeParameters = classBuilder.typeParameters

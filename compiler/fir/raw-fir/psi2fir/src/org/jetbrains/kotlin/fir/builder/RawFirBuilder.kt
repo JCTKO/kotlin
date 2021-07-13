@@ -571,6 +571,10 @@ open class RawFirBuilder(
             }
         }
 
+        override fun visitTypeParameter(parameter: KtTypeParameter, data: Unit?): FirElement {
+            throw AssertionError("KtTypeParameter should be process via extractTypeParameter")
+        }
+
         private fun <T> KtTypeParameterListOwner.fillDanglingConstraintsTo(to: T) where T : FirDeclaration, T : FirTypeParameterRefsOwner {
             val typeParamNames = typeParameters.mapNotNull { it.nameAsName }.toSet()
             val result = typeConstraints.mapNotNull { constraint ->
