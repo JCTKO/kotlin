@@ -239,6 +239,7 @@ class FirRenderer(builder: StringBuilder, private val mode: RenderMode = RenderM
                     print(callableDeclaration.symbol.callableId)
                 }
             }
+            else -> {}
         }
 
         if (callableDeclaration is FirFunction) {
@@ -381,6 +382,7 @@ class FirRenderer(builder: StringBuilder, private val mode: RenderMode = RenderM
                     memberDeclaration.typeParameters.renderTypeParameters()
                 }
             }
+            else -> {}
         }
     }
 

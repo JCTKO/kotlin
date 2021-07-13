@@ -127,6 +127,7 @@ class ChangesCollector {
                     //TODO fqName is not unique. It's package and can be present in both java and kotlin
                     removed.add(packageProtoKey?.let { FqName(it) } ?: oldData.packageFqName)
                 }
+                null -> {}
             }
         }
 

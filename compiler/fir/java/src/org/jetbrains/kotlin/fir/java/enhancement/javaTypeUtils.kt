@@ -249,6 +249,7 @@ private fun ConeClassifierLookupTag.enhanceMutability(
                 return ConeClassLikeLookupTagImpl(mutableId)
             }
         }
+        else -> {}
     }
 
     return this

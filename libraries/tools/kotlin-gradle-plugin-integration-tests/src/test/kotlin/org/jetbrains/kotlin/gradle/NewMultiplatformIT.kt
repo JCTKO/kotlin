@@ -315,6 +315,7 @@ class NewMultiplatformIT : BaseGradleIT() {
                     IR -> {
                         groupDir.resolve(jsJarName).exists()
                     }
+                    else -> {}
                 }
 
                 val metadataJarEntries = ZipFile(groupDir.resolve(metadataJarName)).entries().asSequence().map { it.name }.toSet()
