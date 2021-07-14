@@ -63,6 +63,7 @@ open class SerializationPluginDeclarationChecker : DeclarationChecker {
                 .filter { it.second.annotationClass?.isInheritableSerialInfoAnnotation == true }
         }
         val annotationByFq: MutableMap<FqName, AnnotationDescriptor> = mutableMapOf()
+        val reported: MutableSet<FqName> = mutableSetOf()
         // my annotations
         annotationByFq.putAll(annotationsFilter(descriptor.annotations))
         // inherited
@@ -72,8 +73,10 @@ open class SerializationPluginDeclarationChecker : DeclarationChecker {
                 if (fqname in annotationByFq) {
                     val existing = annotationByFq.getValue(fqname)
                     if (existing.allValueArguments != call.allValueArguments) {
-                        val entry = (existing as? LazyAnnotationDescriptor)?.annotationEntry ?: declaration
-                        trace.report(SerializationErrors.INCONSISTENT_INHERITABLE_SERIALINFO.on(entry, clazz.defaultType))
+                        if (reported.add(fqname)) {
+                            val entry = (existing as? LazyAnnotationDescriptor)?.annotationEntry ?: declaration
+                            trace.report(SerializationErrors.INCONSISTENT_INHERITABLE_SERIALINFO.on(entry, clazz.defaultType))
+                        }
                     }
                 }
             }
