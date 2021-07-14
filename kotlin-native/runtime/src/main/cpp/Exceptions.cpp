@@ -64,6 +64,9 @@ class {
     }
 } concurrentTerminateWrapper;
 
+// TODO: Consider migrating `processUnhandledKotlinException`, `TerminateWithUnhandledException` to a version
+// that does not always terminate.
+
 //! Process exception hook (if any) or just printStackTrace + write crash log
 void processUnhandledKotlinException(KRef throwable) {
   // Use the reentrant switch because both states are possible here:
@@ -91,6 +94,19 @@ ALWAYS_INLINE RUNTIME_NOTHROW OBJ_GETTER(Kotlin_getExceptionObject, void* holder
 #else
     RETURN_OBJ(nullptr);
 #endif
+}
+
+extern "C" void ReportUnhandledException(KRef throwable);
+
+extern "C" RUNTIME_NORETURN void Kotlin_terminateWithUnhandledException(KRef throwable) {
+    concurrentTerminateWrapper([throwable]() {
+        kotlin::AssertThreadState(kotlin::ThreadState::kRunnable);
+        ReportUnhandledException(throwable);
+#if KONAN_REPORT_BACKTRACE_TO_IOS_CRASH_LOG
+        ReportBacktraceToIosCrashLog(throwable);
+#endif
+        konan::abort();
+    });
 }
 
 #if !KONAN_NO_EXCEPTIONS

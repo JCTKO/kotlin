@@ -1040,6 +1040,7 @@ JobKind Worker::processQueueElement(bool blocking) {
         WorkerLaunchpad(obj, dummyHolder.slot());
       } catch (ExceptionObjHolder& e) {
         if (errorReporting())
+          // TODO: Use `processUnhandledException` instead.
           ReportUnhandledException(e.GetExceptionObject());
       }
       DisposeStablePointer(job.executeAfter.operation);
@@ -1062,6 +1063,7 @@ JobKind Worker::processQueueElement(bool blocking) {
       } catch (ExceptionObjHolder& e) {
         ok = false;
         if (errorReporting())
+          // TODO: Use `processUnhandledException` instead.
           ReportUnhandledException(e.GetExceptionObject());
       }
       // Notify the future.

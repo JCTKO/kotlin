@@ -53,6 +53,35 @@ public fun setUnhandledExceptionHook(hook: ReportUnhandledExceptionHook): Report
 }
 
 /**
+ * Retrieve custom unhandled exception hook set by [setUnhandledExceptionHook].
+ */
+public fun getUnhandledExceptionHook(): ReportUnhandledExceptionHook? {
+    return UnhandledExceptionHookHolder.hook.value
+}
+
+/**
+ * Perform the default processing of unhandled exception.
+ */
+public fun processUnhandledException(throwable: Throwable) {
+    val handler = getUnhandledExceptionHook()
+    if (handler == null) {
+        terminateWithUnhandledException(throwable)
+    }
+    try {
+        handler(throwable)
+    } catch (t: Throwable) {
+        terminateWithUnhandledException(t)
+    }
+}
+
+/*
+ * Print exception stacktrace and terminate the program. Does not run unhandled exception hook from
+ * [setUnhandledExceptionHook].
+ */
+@GCUnsafeCall("Kotlin_terminateWithUnhandledException")
+public external fun terminateWithUnhandledException(throwable: Throwable)
+
+/**
  * Compute stable wrt potential object relocations by the memory manager identity hash code.
  * @return 0 for `null` object, identity hash code otherwise.
  */
