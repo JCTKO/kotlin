@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.codegen.inline
 
 import org.jetbrains.kotlin.codegen.optimization.common.FastMethodAnalyzer
 import org.jetbrains.kotlin.codegen.optimization.common.InsnSequence
+import org.jetbrains.kotlin.codegen.optimization.common.OptimizationBasicInterpreter
 import org.jetbrains.kotlin.codegen.optimization.common.isMeaningful
 import org.jetbrains.kotlin.codegen.optimization.nullCheck.isCheckParameterIsNotNull
 import org.jetbrains.kotlin.resolve.jvm.AsmTypes
@@ -74,7 +75,7 @@ val BasicValue?.functionalArgument
 
 internal class FunctionalArgumentInterpreter(
     private val inliner: MethodInliner, private val toDelete: MutableSet<AbstractInsnNode>
-) : BasicInterpreter(Opcodes.API_VERSION) {
+) : OptimizationBasicInterpreter() {
 
     override fun unaryOperation(insn: AbstractInsnNode, value: BasicValue): BasicValue? =
         markInstructionIfNeeded(insn, super.unaryOperation(insn, value))
@@ -109,7 +110,7 @@ internal class FunctionalArgumentInterpreter(
     override fun newOperation(insn: AbstractInsnNode): BasicValue? =
         markInstructionIfNeeded(insn, super.newOperation(insn))
 
-    override fun merge(v: BasicValue?, w: BasicValue?): BasicValue? =
+    override fun merge(v: BasicValue, w: BasicValue): BasicValue =
         if (v is FunctionalArgumentValue && w is FunctionalArgumentValue && v.functionalArgument == w.functionalArgument) v
         else super.merge(v, w)
 }
@@ -136,20 +137,23 @@ internal class Aload0Interpreter(private val node: MethodNode) : BasicInterprete
 
 internal fun AbstractInsnNode.isAload0() = opcode == Opcodes.ALOAD && (this as VarInsnNode).`var` == 0
 
-internal fun analyzeMethodNodeWithInterpreter(node: MethodNode, interpreter: BasicInterpreter): Array<out Frame<BasicValue>?> {
-    val analyzer = object : FastMethodAnalyzer<BasicValue>("fake", node, interpreter) {
-        override fun newFrame(nLocals: Int, nStack: Int): Frame<BasicValue> {
-
-            return object : Frame<BasicValue>(nLocals, nStack) {
-                @Throws(AnalyzerException::class)
-                override fun execute(insn: AbstractInsnNode, interpreter: Interpreter<BasicValue>) {
-                    // This can be a void non-local return from a non-void method; Frame#execute would throw and do nothing else.
-                    if (insn.opcode == Opcodes.RETURN) return
-                    super.execute(insn, interpreter)
+internal fun analyzeMethodNodeWithInterpreter(
+    node: MethodNode,
+    interpreter: Interpreter<BasicValue>
+): Array<out Frame<BasicValue>?> {
+    val analyzer =
+        object : FastMethodAnalyzer<BasicValue>("fake", node, interpreter) {
+            override fun newFrame(nLocals: Int, nStack: Int): Frame<BasicValue> {
+                return object : Frame<BasicValue>(nLocals, nStack) {
+                    @Throws(AnalyzerException::class)
+                    override fun execute(insn: AbstractInsnNode, interpreter: Interpreter<BasicValue>) {
+                        // This can be a void non-local return from a non-void method; Frame#execute would throw and do nothing else.
+                        if (insn.opcode == Opcodes.RETURN) return
+                        super.execute(insn, interpreter)
+                    }
                 }
             }
         }
-    }
 
     try {
         return analyzer.analyze()

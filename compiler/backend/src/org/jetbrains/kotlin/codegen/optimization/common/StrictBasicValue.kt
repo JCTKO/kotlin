@@ -27,22 +27,31 @@ open class StrictBasicValue(type: Type?) : BasicValue(type) {
     companion object {
         @JvmField
         val UNINITIALIZED_VALUE = StrictBasicValue(null)
+
         @JvmField
         val INT_VALUE = StrictBasicValue(Type.INT_TYPE)
+
         @JvmField
         val FLOAT_VALUE = StrictBasicValue(Type.FLOAT_TYPE)
+
         @JvmField
         val LONG_VALUE = StrictBasicValue(Type.LONG_TYPE)
+
         @JvmField
         val DOUBLE_VALUE = StrictBasicValue(Type.DOUBLE_TYPE)
+
         @JvmField
         val BOOLEAN_VALUE = StrictBasicValue(Type.BOOLEAN_TYPE)
+
         @JvmField
         val CHAR_VALUE = StrictBasicValue(Type.CHAR_TYPE)
+
         @JvmField
         val BYTE_VALUE = StrictBasicValue(Type.BYTE_TYPE)
+
         @JvmField
         val SHORT_VALUE = StrictBasicValue(Type.SHORT_TYPE)
+
         @JvmField
         val REFERENCE_VALUE = StrictBasicValue(Type.getObjectType("java/lang/Object"))
 
@@ -60,9 +69,9 @@ open class StrictBasicValue(type: Type?) : BasicValue(type) {
         if (this === NULL_VALUE) return other === NULL_VALUE
         if (other === NULL_VALUE) return this === NULL_VALUE
 
-        if (type != other.type) return false
-
-        return true
+        // NB interned StrictBasicValues use the same Type objects,
+        // which would shortcut the comparison in Type#equals.
+        return type == other.type
     }
 
     override fun hashCode() = (type?.hashCode() ?: 0)

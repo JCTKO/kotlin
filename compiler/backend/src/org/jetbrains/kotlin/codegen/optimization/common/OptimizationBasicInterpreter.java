@@ -27,7 +27,9 @@ import org.jetbrains.org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.jetbrains.org.objectweb.asm.tree.analysis.BasicValue;
 import org.jetbrains.org.objectweb.asm.tree.analysis.Interpreter;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.jetbrains.kotlin.codegen.inline.InlineCodegenUtilsKt.getInsnOpcodeText;
 import static org.jetbrains.kotlin.codegen.optimization.common.StrictBasicValue.*;
@@ -35,6 +37,13 @@ import static org.jetbrains.kotlin.codegen.optimization.common.StrictBasicValue.
 public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implements Opcodes {
     public OptimizationBasicInterpreter() {
         super(API_VERSION);
+    }
+
+    private final Map<String, StrictBasicValue> internedValues = new HashMap<>();
+
+    @NotNull
+    protected StrictBasicValue internValue(Type type) {
+        return internedValues.computeIfAbsent(type.getDescriptor(), (d) -> new StrictBasicValue(type));
     }
 
     @Override
@@ -65,7 +74,7 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
                 return SHORT_VALUE;
             case Type.OBJECT:
             case Type.ARRAY:
-                return new StrictBasicValue(type);
+                return internValue(type);
             default:
                 throw new IllegalArgumentException("Unknown type sort " + type.getSort());
         }
@@ -83,6 +92,8 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
             case ICONST_3:
             case ICONST_4:
             case ICONST_5:
+            case BIPUSH:
+            case SIPUSH:
                 return StrictBasicValue.INT_VALUE;
             case LCONST_0:
             case LCONST_1:
@@ -94,9 +105,6 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
             case DCONST_0:
             case DCONST_1:
                 return StrictBasicValue.DOUBLE_VALUE;
-            case BIPUSH:
-            case SIPUSH:
-                return StrictBasicValue.INT_VALUE;
             case LDC:
                 Object cst = ((LdcInsnNode) insn).cst;
                 if (cst instanceof Integer) {
@@ -147,11 +155,7 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
     }
 
     @Override
-    public BasicValue binaryOperation(
-            @NotNull AbstractInsnNode insn,
-            @NotNull BasicValue value1,
-            @NotNull BasicValue value2
-    ) throws AnalyzerException {
+    public BasicValue binaryOperation(@NotNull AbstractInsnNode insn, @NotNull BasicValue value1, @NotNull BasicValue value2) {
         if (insn.getOpcode() == Opcodes.AALOAD) {
             Type arrayType = value1.getType();
             if (arrayType != null && arrayType.getSort() == Type.ARRAY) {
@@ -175,6 +179,11 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
             case IAND:
             case IOR:
             case IXOR:
+            case LCMP:
+            case FCMPL:
+            case FCMPG:
+            case DCMPL:
+            case DCMPG:
                 return StrictBasicValue.INT_VALUE;
             case FALOAD:
             case FADD:
@@ -205,12 +214,6 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
                 return StrictBasicValue.DOUBLE_VALUE;
             case AALOAD:
                 return StrictBasicValue.REFERENCE_VALUE;
-            case LCMP:
-            case FCMPL:
-            case FCMPG:
-            case DCMPL:
-            case DCMPG:
-                return StrictBasicValue.INT_VALUE;
             case IF_ICMPEQ:
             case IF_ICMPNE:
             case IF_ICMPLT:
@@ -227,16 +230,13 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
     }
 
     @Override
-    public BasicValue ternaryOperation(
-            AbstractInsnNode insn, BasicValue value1, BasicValue value2, BasicValue value3
-    ) throws AnalyzerException {
+    public BasicValue ternaryOperation(AbstractInsnNode insn, BasicValue value1, BasicValue value2, BasicValue value3)
+            throws AnalyzerException {
         return null;
     }
 
     @Override
-    public BasicValue naryOperation(
-            AbstractInsnNode insn, List<? extends BasicValue> values
-    ) throws AnalyzerException {
+    public BasicValue naryOperation(AbstractInsnNode insn, List<? extends BasicValue> values) throws AnalyzerException {
         int opcode = insn.getOpcode();
         if (opcode == MULTIANEWARRAY) {
             return newValue(Type.getType(((MultiANewArrayInsnNode) insn).desc));
@@ -250,9 +250,7 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
     }
 
     @Override
-    public void returnOperation(
-            AbstractInsnNode insn, BasicValue value, BasicValue expected
-    ) throws AnalyzerException {
+    public void returnOperation(AbstractInsnNode insn, BasicValue value, BasicValue expected) throws AnalyzerException {
     }
 
     @Override
@@ -260,6 +258,7 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
             AbstractInsnNode insn,
             BasicValue value
     ) throws AnalyzerException {
+        String desc;
         switch (insn.getOpcode()) {
             case INEG:
             case IINC:
@@ -269,6 +268,8 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
             case I2B:
             case I2C:
             case I2S:
+            case ARRAYLENGTH:
+            case INSTANCEOF:
                 return StrictBasicValue.INT_VALUE;
             case FNEG:
             case I2F:
@@ -299,6 +300,11 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
             case DRETURN:
             case ARETURN:
             case PUTSTATIC:
+            case ATHROW:
+            case MONITORENTER:
+            case MONITOREXIT:
+            case IFNULL:
+            case IFNONNULL:
                 return null;
             case GETFIELD:
                 return newValue(Type.getType(((FieldInsnNode) insn).desc));
@@ -324,22 +330,11 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
                         throw new AnalyzerException(insn, "Invalid array type");
                 }
             case ANEWARRAY:
-                String desc = ((TypeInsnNode) insn).desc;
+                desc = ((TypeInsnNode) insn).desc;
                 return newValue(Type.getType("[" + Type.getObjectType(desc)));
-            case ARRAYLENGTH:
-                return StrictBasicValue.INT_VALUE;
-            case ATHROW:
-                return null;
             case CHECKCAST:
                 desc = ((TypeInsnNode) insn).desc;
                 return newValue(Type.getObjectType(desc));
-            case INSTANCEOF:
-                return StrictBasicValue.INT_VALUE;
-            case MONITORENTER:
-            case MONITOREXIT:
-            case IFNULL:
-            case IFNONNULL:
-                return null;
             default:
                 throw new IllegalArgumentException("Unexpected instruction: " + getInsnOpcodeText(insn));
         }
@@ -347,9 +342,7 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
 
     @NotNull
     @Override
-    public BasicValue merge(
-            @NotNull BasicValue v, @NotNull BasicValue w
-    ) {
+    public BasicValue merge(@NotNull BasicValue v, @NotNull BasicValue w) {
         if (v.equals(w)) return v;
 
         if (v == StrictBasicValue.UNINITIALIZED_VALUE || w == StrictBasicValue.UNINITIALIZED_VALUE) {
@@ -359,8 +352,10 @@ public class OptimizationBasicInterpreter extends Interpreter<BasicValue> implem
         // if merge of two references then `lub` is java/lang/Object
         // arrays also are BasicValues with reference type's
         if (isReference(v) && isReference(w)) {
-            if (v == NULL_VALUE) return newValue(w.getType());
-            if (w == NULL_VALUE) return newValue(v.getType());
+            if (v == NULL_VALUE) //noinspection ConstantConditions
+                return newValue(w.getType());
+            if (w == NULL_VALUE) //noinspection ConstantConditions
+                return newValue(v.getType());
 
             return StrictBasicValue.REFERENCE_VALUE;
         }
