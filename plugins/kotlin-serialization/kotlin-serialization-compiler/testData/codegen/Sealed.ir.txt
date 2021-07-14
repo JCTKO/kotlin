@@ -330,15 +330,11 @@ final class Result$Companion$$cachedSerializer$delegate$2 : kotlin/jvm/internal/
           DUP
           LDC (Result.Err)
           GETSTATIC (INSTANCE, LResult$Err;)
-          ICONST_0
-          ANEWARRAY
-          INVOKESPECIAL (kotlinx/serialization/internal/ObjectSerializer, <init>, (Ljava/lang/String;Ljava/lang/Object;[Ljava/lang/annotation/Annotation;)V)
+          INVOKESPECIAL (kotlinx/serialization/internal/ObjectSerializer, <init>, (Ljava/lang/String;Ljava/lang/Object;)V)
           CHECKCAST
           AASTORE
           ALOAD (1)
-          ICONST_0
-          ANEWARRAY
-          INVOKESPECIAL (kotlinx/serialization/SealedClassSerializer, <init>, (Ljava/lang/String;Lkotlin/reflect/KClass;[Lkotlin/reflect/KClass;[Lkotlinx/serialization/KSerializer;[Ljava/lang/annotation/Annotation;)V)
+          INVOKESPECIAL (kotlinx/serialization/SealedClassSerializer, <init>, (Ljava/lang/String;Lkotlin/reflect/KClass;[Lkotlin/reflect/KClass;[Lkotlinx/serialization/KSerializer;)V)
           CHECKCAST
           ARETURN
         LABEL (L1)
@@ -410,9 +406,7 @@ final class Result$Err$$cachedSerializer$delegate$2 : kotlin/jvm/internal/Lambda
           DUP
           LDC (Result.Err)
           GETSTATIC (INSTANCE, LResult$Err;)
-          ICONST_0
-          ANEWARRAY
-          INVOKESPECIAL (kotlinx/serialization/internal/ObjectSerializer, <init>, (Ljava/lang/String;Ljava/lang/Object;[Ljava/lang/annotation/Annotation;)V)
+          INVOKESPECIAL (kotlinx/serialization/internal/ObjectSerializer, <init>, (Ljava/lang/String;Ljava/lang/Object;)V)
           CHECKCAST
           ARETURN
         LABEL (L1)
